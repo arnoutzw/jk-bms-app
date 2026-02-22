@@ -21,6 +21,7 @@ A web-based Battery Management System monitor for real-time JK BMS device monito
 - **Historical Data**: Track battery performance over time
 - **Alerts and Warnings**: Notifications for out-of-range conditions
 - **Offline Capable**: Store and review data when offline
+- Web Bluetooth API for wireless BMS connectivity
 
 ## Tech Stack
 
@@ -55,6 +56,21 @@ Simply open `index.html` in a modern web browser. No build tools or dependencies
 - JK BMS device with serial port communication capability
 - Modern browser with Web Serial API support (Chrome/Edge on desktop)
 - USB to serial adapter if JK BMS uses RS-485 or similar
+
+
+## Theme Support
+
+The app supports two themes:
+
+- **Dark** (default) - Dark background with amber accents
+- **ASML Light** - Light theme following ASML corporate design (deep blue #10069f, cyan accents)
+
+When embedded in the Black Sphere Industries portal, theme changes are communicated via `postMessage`:
+
+```javascript
+// Sent to parent when theme changes
+window.parent.postMessage({ type: "theme-change", theme: "dark" | "asml" }, "*");
+```
 
 ## Browser Support
 
