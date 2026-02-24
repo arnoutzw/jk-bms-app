@@ -689,7 +689,7 @@ function createDevicePanel(s) {
         <div style="display:flex; justify-content:space-between; align-items:baseline">
           <div class="stat-label">State of Charge</div>
           <div style="font-size:11px; color:var(--text2)">
-            <span id="soc-remain-${s}">â</span> / <span id="soc-full-${s}">â</span> Ah
+            <span id="soc-remain-${s}">—</span> / <span id="soc-full-${s}">—</span> Ah
           </div>
         </div>
         <div class="soc-bar-outer">
@@ -701,19 +701,19 @@ function createDevicePanel(s) {
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Voltage</div>
-          <div class="stat-value blue" id="pack-voltage-${s}">â</div>
+          <div class="stat-value blue" id="pack-voltage-${s}">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Current</div>
-          <div class="stat-value green" id="pack-current-${s}">â</div>
+          <div class="stat-value green" id="pack-current-${s}">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Power</div>
-          <div class="stat-value yellow" id="pack-power-${s}">â</div>
+          <div class="stat-value yellow" id="pack-power-${s}">—</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Cycles</div>
-          <div class="stat-value" id="pack-cycles-${s}" style="color:var(--text)">â</div>
+          <div class="stat-value" id="pack-cycles-${s}" style="color:var(--text)">—</div>
         </div>
       </div>
 
@@ -729,20 +729,20 @@ function createDevicePanel(s) {
       <div id="tab-cells-${s}" class="card">
         <div style="display:flex; justify-content:space-between; margin-bottom:6px">
           <div class="card-title">Cell Voltages</div>
-          <div style="font-size:11px; color:var(--text3)">&#916; <span id="cell-delta-${s}">â</span> mV</div>
+          <div style="font-size:11px; color:var(--text3)">&#916; <span id="cell-delta-${s}">—</span> mV</div>
         </div>
         <div class="cell-summary" id="cell-summary-${s}">
           <div class="cell-summary-item">
             <div class="cell-summary-label">Min</div>
-            <div class="cell-summary-value" id="cell-min-${s}">â</div>
+            <div class="cell-summary-value" id="cell-min-${s}">—</div>
           </div>
           <div class="cell-summary-item avg">
             <div class="cell-summary-label">Avg Cell Voltage</div>
-            <div class="cell-summary-value" id="cell-avg-${s}">â</div>
+            <div class="cell-summary-value" id="cell-avg-${s}">—</div>
           </div>
           <div class="cell-summary-item">
             <div class="cell-summary-label">Max</div>
-            <div class="cell-summary-value" id="cell-max-${s}">â</div>
+            <div class="cell-summary-value" id="cell-max-${s}">—</div>
           </div>
         </div>
         <div class="cells-container" id="cells-container-${s}">
@@ -766,9 +766,9 @@ function createDevicePanel(s) {
         </div>
         <div class="card-title">MOS Status</div>
         <div class="mos-grid">
-          <div class="mos-item" id="mos-chg-wrap-${s}"><div class="mos-label">Charge</div><div class="mos-state" id="mos-chg-${s}">â</div></div>
-          <div class="mos-item" id="mos-dsg-wrap-${s}"><div class="mos-label">Discharge</div><div class="mos-state" id="mos-dsg-${s}">â</div></div>
-          <div class="mos-item" id="mos-bal-wrap-${s}"><div class="mos-label">Balance</div><div class="mos-state" id="mos-bal-${s}">â</div></div>
+          <div class="mos-item" id="mos-chg-wrap-${s}"><div class="mos-label">Charge</div><div class="mos-state" id="mos-chg-${s}">—</div></div>
+          <div class="mos-item" id="mos-dsg-wrap-${s}"><div class="mos-label">Discharge</div><div class="mos-state" id="mos-dsg-${s}">—</div></div>
+          <div class="mos-item" id="mos-bal-wrap-${s}"><div class="mos-label">Balance</div><div class="mos-state" id="mos-bal-${s}">—</div></div>
         </div>
         <div class="card-title" style="margin-top:10px">Alarms</div>
         <div id="alarms-${s}" style="font-size:12px; color:var(--green); text-align:center; padding:8px">No alarms</div>
@@ -846,7 +846,7 @@ async function addDevice() {
     await connectSlot(s);
   } catch (err) {
     if (err.name === 'NotFoundError') {
-      // User cancelled scan â remove the slot
+      // User cancelled scan — remove the slot
       removeDevicePanel(s);
       slots[s] = null;
       updateGlobalStatus();
@@ -1173,11 +1173,11 @@ function parseDeviceInfo(s, frame) {
   const infoEl = el('devinfo', s);
   if (infoEl) {
     infoEl.innerHTML = `
-      <div class="info-row"><span class="info-label">Model</span><span class="info-value">${d.model || 'â'}</span></div>
-      <div class="info-row"><span class="info-label">Hardware</span><span class="info-value">${d.hardware || 'â'}</span></div>
-      <div class="info-row"><span class="info-label">Firmware</span><span class="info-value">${d.firmware || 'â'}</span></div>
-      <div class="info-row"><span class="info-label">Serial</span><span class="info-value">${d.serial || 'â'}</span></div>
-      <div class="info-row"><span class="info-label">Name</span><span class="info-value">${d.deviceName || 'â'}</span></div>
+      <div class="info-row"><span class="info-label">Model</span><span class="info-value">${d.model || '—'}</span></div>
+      <div class="info-row"><span class="info-label">Hardware</span><span class="info-value">${d.hardware || '—'}</span></div>
+      <div class="info-row"><span class="info-label">Firmware</span><span class="info-value">${d.firmware || '—'}</span></div>
+      <div class="info-row"><span class="info-label">Serial</span><span class="info-value">${d.serial || '—'}</span></div>
+      <div class="info-row"><span class="info-label">Name</span><span class="info-value">${d.deviceName || '—'}</span></div>
       <div class="info-row"><span class="info-label">Protocol</span><span class="info-value">${state.protocolVersion}</span></div>
     `;
   }
@@ -1211,7 +1211,7 @@ function parseJK02CellInfo(s, frame) {
   const ofs = is32S ? 16 : 0;
   const numCells = is32S ? 32 : 24;
 
-  // Cell Voltages: offset 6, numCells Ã uint16 LE, Ã0.001 = V
+  // Cell Voltages: offset 6, numCells × uint16 LE, ×0.001 = V
   const cells = [];
   let minV = 100, maxV = -100, minCell = 0, maxCell = 0, totalV = 0, enabledCells = 0;
   for (let i = 0; i < numCells; i++) {
@@ -1362,9 +1362,9 @@ function updateSlotUI(s) {
     socBar.textContent = socPct + '%';
   }
   const remEl = el('soc-remain', s);
-  if (remEl) remEl.textContent = d.remainCap > 0 ? d.remainCap.toFixed(1) : 'â';
+  if (remEl) remEl.textContent = d.remainCap > 0 ? d.remainCap.toFixed(1) : '—';
   const fullEl = el('soc-full', s);
-  if (fullEl) fullEl.textContent = d.fullCap > 0 ? d.fullCap.toFixed(1) : 'â';
+  if (fullEl) fullEl.textContent = d.fullCap > 0 ? d.fullCap.toFixed(1) : '—';
 
   // Cells
   updateCellDisplay(s);
@@ -1374,7 +1374,7 @@ function updateSlotUI(s) {
 
   // Cell voltage summary (avg / min / max)
   const avgEl = el('cell-avg', s);
-  if (avgEl) avgEl.textContent = d.avgCell > 0 ? (d.avgCell / 1000).toFixed(3) + ' V' : 'â';
+  if (avgEl) avgEl.textContent = d.avgCell > 0 ? (d.avgCell / 1000).toFixed(3) + ' V' : '—';
   const minEl = el('cell-min', s);
   if (minEl && d.cells.length > 0) {
     const minMv = Math.min(...d.cells.map(c => c.mV));
@@ -1433,7 +1433,7 @@ function updateCellDisplay(s) {
 
     const isMax = cell.mV === max && cells.length > 1;
     const isMin = cell.mV === min && cells.length > 1;
-    const marker = isMax ? ' â²' : isMin ? ' â¼' : '';
+    const marker = isMax ? ' ▲' : isMin ? ' ▼' : '';
 
     html += `<div class="cell-row">
       <div class="cell-label">C${cell.index}</div>
@@ -1466,7 +1466,7 @@ function updateTempDisplay(s) {
     const cls = tmp.value > 50 ? 'hot' : tmp.value > 35 ? 'warm' : 'normal';
     html += `<div class="temp-item">
       <div class="temp-label">${tmp.label}</div>
-      <div class="temp-value ${cls}">${tmp.value.toFixed(1)}Â°</div>
+      <div class="temp-value ${cls}">${tmp.value.toFixed(1)}°</div>
     </div>`;
   }
   grid.innerHTML = html || '<div style="color:var(--text3); font-size:12px; grid-column:1/-1; text-align:center; padding:10px">No temp data</div>';
