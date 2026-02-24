@@ -37,6 +37,18 @@
   --gap: 10px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+[data-theme="light"] {
+  --bg: #ffffff; --surface: #f8f9fb; --surface2: #f0f2f5;
+  --border: #e2e5f0;
+  --text: #081249; --text2: #2b2a3e; --text3: #555570;
+  --accent: #10069f; --accent2: #1297e4;
+  --accent-glow: rgba(16,6,159,0.10);
+  --green: #16a34a; --green-dim: #15803d; --green-bg: rgba(22,163,74,0.10);
+  --red: #dc2626; --red-bg: rgba(220,38,38,0.10);
+  --yellow: #ca8a04; --yellow-bg: rgba(202,138,4,0.10);
+  --blue: #2563eb; --blue-bg: rgba(37,99,235,0.10);
+  --orange: #ea580c; --orange-bg: rgba(234,88,12,0.10);
+}
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -519,6 +531,51 @@ header h1 span { color: var(--accent); }
   .stat-value { font-size: 1rem; }
 }
 </style>
+<script>
+// BSI Theme Bridge v1.1 — iframe: parent-only control / standalone: local toggle
+(function() {
+  var APP_THEME_KEY = 'jkbms_theme';
+  var isEmbedded = (window.parent !== window);
+  function applyBsiTheme(theme) {
+    if (theme !== 'dark' && theme !== 'light') theme = 'dark';
+    var html = document.documentElement;
+    html.setAttribute('data-theme', theme);
+    html.style.colorScheme = theme;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = (theme === 'light') ? '#ffffff' : '#09090b';
+    document.dispatchEvent(new CustomEvent('bsi-theme-applied', { detail: { theme: theme } }));
+  }
+  function mapTheme(raw) {
+    return (raw === 'asml' || raw === 'light') ? 'light' : 'dark';
+  }
+  if (isEmbedded) {
+    var s = document.createElement('style');
+    s.textContent = '[data-theme-toggle]{display:none!important}';
+    (document.head || document.documentElement).appendChild(s);
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'theme-change') applyBsiTheme(mapTheme(e.data.theme));
+    });
+    applyBsiTheme('dark');
+    try { window.parent.postMessage({ type: 'theme-request' }, '*'); } catch(e) {}
+  } else {
+    var saved = localStorage.getItem(APP_THEME_KEY) || 'dark';
+    if (saved === 'asml') { saved = 'light'; localStorage.setItem(APP_THEME_KEY, saved); }
+    applyBsiTheme(saved);
+    window.bsiToggleTheme = function() {
+      var next = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+      applyBsiTheme(next);
+      localStorage.setItem(APP_THEME_KEY, next);
+    };
+    window.bsiSetTheme = function(theme) {
+      var mapped = mapTheme(theme);
+      applyBsiTheme(mapped);
+      localStorage.setItem(APP_THEME_KEY, mapped);
+    };
+  }
+  window._bsiIsEmbedded = isEmbedded;
+  window._bsiApplyTheme = applyBsiTheme;
+})();
+</script>
 </head>
 <body>
 <header>
@@ -1545,28 +1602,5 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<script>
-// Theme change observer - signals to parent portal
-(function() {
-  var lastTheme = '';
-  var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.attributeName === 'class' || m.attributeName === 'data-theme') {
-        var el = document.documentElement;
-        var isDark = el.classList.contains('dark') || el.getAttribute('data-theme') === 'dark';
-        var newTheme = isDark ? 'dark' : 'asml';
-        if (newTheme !== lastTheme) {
-          lastTheme = newTheme;
-          if (window.parent !== window) {
-            try { window.parent.postMessage({ type: 'theme-change', theme: newTheme }, '*'); } catch(e) {}
-          }
-        }
-      }
-    });
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-  if (document.body) observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-})();
-</script>
 </body>
 </html>
