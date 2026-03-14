@@ -888,6 +888,9 @@ async function addDevice() {
 
     // Create UI panel
     createDevicePanel(s);
+    // Restore active tab from URL hash
+    const hashTab = window.location.hash.slice(1);
+    if (VALID_TABS.includes(hashTab)) showTab(s, hashTab, null, true);
     updateGlobalStatus();
 
     log(s, 'Scanning for JK BMS devices...', 'info');
@@ -1571,8 +1574,9 @@ function updateHexDump(s, frame) {
 // ============================================================
 // Tab Switching (per-slot)
 // ============================================================
-function showTab(s, name, btn) {
-  ['cells', 'temps', 'status', 'raw'].forEach(t => {
+const VALID_TABS = ['cells', 'temps', 'status', 'raw'];
+function showTab(s, name, btn, skipHistory) {
+  VALID_TABS.forEach(t => {
     const tabEl = el('tab-' + t, s);
     if (tabEl) tabEl.classList.toggle('hidden', t !== name);
   });
@@ -1581,8 +1585,23 @@ function showTab(s, name, btn) {
   if (panel) {
     panel.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     if (btn) btn.classList.add('active');
+    else panel.querySelectorAll(`.tab`).forEach(t => { if (t.textContent.trim().toLowerCase() === name) t.classList.add('active'); });
   }
+  if (!skipHistory) history.replaceState(null, '', '#' + name);
 }
+// Deep linking: restore tab from hash and listen for changes
+(function () {
+  function applyHash() {
+    const tab = window.location.hash.slice(1);
+    if (!VALID_TABS.includes(tab)) return;
+    // Apply to all currently rendered slots
+    for (let i = 0; i < MAX_SLOTS; i++) {
+      if (document.getElementById('panel-' + i)) showTab(i, tab, null, true);
+    }
+  }
+  applyHash();
+  window.addEventListener('hashchange', applyHash);
+})();
 
 // ============================================================
 // Utilities
