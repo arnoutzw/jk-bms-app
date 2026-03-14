@@ -1619,6 +1619,23 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
+
+    // ── Portal Deep Link Bridge ──
+    if (window.parent !== window) {
+      const _notifyParentHash = () => {
+        const h = window.location.hash ? window.location.hash.substring(1) : '';
+        try { window.parent.postMessage({ type: 'hash-change', hash: h }, '*'); } catch(e) {}
+      };
+      window.addEventListener('hashchange', _notifyParentHash);
+      const _origReplace = history.replaceState.bind(history);
+      history.replaceState = function() { _origReplace.apply(history, arguments); _notifyParentHash(); };
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'set-hash' && typeof e.data.hash === 'string') {
+          if (window.location.hash !== '#' + e.data.hash) window.location.hash = e.data.hash;
+        }
+      });
+      setTimeout(_notifyParentHash, 200);
+    }
 </script>
 
 </body>
