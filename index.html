@@ -532,6 +532,16 @@ header h1 span { color: var(--accent); }
 }
 </style>
 <script>
+// BSI Origin Validation
+const ALLOWED_ORIGINS = ['https://blacksphereindustries.nl', 'https://www.blacksphereindustries.nl'];
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  ALLOWED_ORIGINS.push('http://localhost:8080');
+}
+function isAllowedOrigin(origin) { return ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.pages.dev'); }
+
+// HTML escape for BLE-received strings
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 // BSI Theme Bridge v1.1 — iframe: parent-only control / standalone: local toggle
 (function() {
   var APP_THEME_KEY = 'jkbms_theme';
@@ -553,6 +563,7 @@ header h1 span { color: var(--accent); }
     s.textContent = '[data-theme-toggle]{display:none!important}';
     (document.head || document.documentElement).appendChild(s);
     window.addEventListener('message', function(e) {
+      if (!isAllowedOrigin(e.origin)) return;
       if (e.data && e.data.type === 'theme-change') applyBsiTheme(mapTheme(e.data.theme));
     });
     applyBsiTheme('dark');
@@ -1230,12 +1241,12 @@ function parseDeviceInfo(s, frame) {
   const infoEl = el('devinfo', s);
   if (infoEl) {
     infoEl.innerHTML = `
-      <div class="info-row"><span class="info-label">Model</span><span class="info-value">${d.model || '—'}</span></div>
-      <div class="info-row"><span class="info-label">Hardware</span><span class="info-value">${d.hardware || '—'}</span></div>
-      <div class="info-row"><span class="info-label">Firmware</span><span class="info-value">${d.firmware || '—'}</span></div>
-      <div class="info-row"><span class="info-label">Serial</span><span class="info-value">${d.serial || '—'}</span></div>
-      <div class="info-row"><span class="info-label">Name</span><span class="info-value">${d.deviceName || '—'}</span></div>
-      <div class="info-row"><span class="info-label">Protocol</span><span class="info-value">${state.protocolVersion}</span></div>
+      <div class="info-row"><span class="info-label">Model</span><span class="info-value">${esc(d.model || '—')}</span></div>
+      <div class="info-row"><span class="info-label">Hardware</span><span class="info-value">${esc(d.hardware || '—')}</span></div>
+      <div class="info-row"><span class="info-label">Firmware</span><span class="info-value">${esc(d.firmware || '—')}</span></div>
+      <div class="info-row"><span class="info-label">Serial</span><span class="info-value">${esc(d.serial || '—')}</span></div>
+      <div class="info-row"><span class="info-label">Name</span><span class="info-value">${esc(d.deviceName || '—')}</span></div>
+      <div class="info-row"><span class="info-label">Protocol</span><span class="info-value">${esc(state.protocolVersion)}</span></div>
     `;
   }
 
