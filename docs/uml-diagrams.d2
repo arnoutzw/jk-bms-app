@@ -1,0 +1,369 @@
+# JK BMS Monitor — UML Diagrams
+# Web Bluetooth app for monitoring JK Battery Management Systems (up to 3 simultaneous)
+
+# ============================================================
+# CLASSES
+# ============================================================
+class-diagram: {
+  label: "Class Diagram"
+
+  BLE: "BLE Protocol Constants" {
+    shape: class
+    SERVICE: "0xFFE0"
+    CHAR_NOTIFY: "0xFFE1"
+    CHAR_WRITE: "0xFFE2"
+    CMD_CELL_INFO: "0x96"
+    CMD_DEVICE_INFO: "0x97"
+    FRAME_SETTINGS: "0x01"
+    FRAME_CELL_DATA: "0x02"
+    FRAME_DEVICE_INFO: "0x03"
+    FRAME_SIZE: "300"
+    HEARTBEAT_INTERVAL: "5000ms"
+  }
+
+  SlotState: SlotState {
+    shape: class
+    device: BluetoothDevice
+    server: BluetoothRemoteGATTServer
+    service: BluetoothRemoteGATTService
+    charNotify: BluetoothRemoteGATTCharacteristic
+    charWrite: BluetoothRemoteGATTCharacteristic
+    rxBuffer: "number[]"
+    frameCount: int
+    lastFrameTime: timestamp
+    reconnecting: boolean
+    heartbeatTimer: int
+    heartbeatEnabled: boolean
+    protocolVersion: string
+    bmsData: BmsData
+  }
+
+  BmsData: BmsData {
+    shape: class
+    model: string
+    firmware: string
+    hardware: string
+    serial: string
+    deviceName: string
+    cells: "number[]"
+    resistances: "number[]"
+    avgCell: number
+    deltaCell: number
+    maxCellNo: int
+    minCellNo: int
+    temps: object
+    packVoltage: number
+    packCurrent: number
+    packPower: number
+    soc: number
+    soh: number
+    remainCap: number
+    fullCap: number
+    cycles: int
+    cycleCap: number
+    runtime: int
+    balanceCurrent: number
+    chargeMos: boolean
+    dischargeMos: boolean
+    balanceActive: boolean
+    heating: boolean
+    errorBitmask: int
+    errorText: string
+  }
+
+  PROTO: "Protocol Versions" {
+    shape: class
+    JK02_24S: "jk02_24s"
+    JK02_32S: "jk02_32s"
+    JK04: "jk04"
+  }
+
+  SlotManager: "Slot Manager (Global)" {
+    shape: class
+    slots: "SlotState[3]"
+    MAX_SLOTS: "3"
+    SLOT_COLORS: "['green','blue','orange']"
+
+    connectedCount()
+    findFreeSlot()
+    addDevice()
+    connectSlot(s)
+    disconnectSlot(s)
+    setSlotStatus(s, status)
+    updateGlobalStatus()
+  }
+
+  FrameProcessor: FrameProcessor {
+    shape: class
+
+    onNotification(s, event)
+    extractFrames(s)
+    processFrame(s, frame)
+    parseCellData(s, frame)
+    parseDeviceInfo(s, frame)
+  }
+
+  CommandBuilder: CommandBuilder {
+    shape: class
+
+    buildCommand(cmd)
+    sendCmd(s, data)
+    sendActivate(s)
+    sendDeviceInfoCmd(s)
+    startHeartbeat(s)
+    toggleHeartbeat(s, enabled)
+  }
+
+  UIRenderer: UIRenderer {
+    shape: class
+
+    createDevicePanel(s)
+    removeDevicePanel(s)
+    updateUI(s)
+    updateHexDump(s, frame)
+    showTab(s, tab)
+  }
+
+  ThemeBridge: "BSI Theme Bridge" {
+    shape: class
+    APP_THEME_KEY: "'jkbms_theme'"
+    isEmbedded: boolean
+
+    applyBsiTheme(theme)
+  }
+
+  # Relationships
+  SlotManager -> SlotState: "manages 0..3"
+  SlotState -> BmsData: "contains 1"
+  SlotState -> BLE: "uses constants"
+  FrameProcessor -> SlotState: "reads/writes rxBuffer"
+  FrameProcessor -> BmsData: "populates"
+  FrameProcessor -> PROTO: "detects version"
+  CommandBuilder -> SlotState: "writes via charWrite"
+  CommandBuilder -> BLE: "uses command constants"
+  UIRenderer -> SlotState: "renders"
+  UIRenderer -> BmsData: "displays"
+}
+
+# ============================================================
+# SEQUENCE: MAIN — BLE Connection and Data Streaming
+# ============================================================
+seq-main: "BLE Connection and Data Streaming" {
+  shape: sequence_diagram
+
+  user: User
+  app: "JK BMS App"
+  bt: "Web Bluetooth API"
+  browser: "Browser Picker"
+  gatt: "GATT Server"
+  service: "Service 0xFFE0"
+  notify: "Char 0xFFE1 (Notify)"
+  write: "Char 0xFFE2 (Write)"
+  bms: "JK BMS Device"
+
+  # Scan and pair
+  user -> app: "Click 'Add BMS'"
+  app -> app: "findFreeSlot() -> slot index"
+  app -> app: "createSlotState()"
+  app -> app: "createDevicePanel(slot)"
+  app -> bt: "requestDevice({filters: [service: 0xFFE0]})"
+  bt -> browser: "Show BLE device picker"
+  browser -> user: "Select JK BMS"
+  user -> browser: "Choose device"
+  browser -> bt: "BluetoothDevice"
+  bt -> app: "device (name, id)"
+
+  # GATT connect
+  app -> app: "setSlotStatus(slot, 'connecting')"
+  app -> gatt: "device.gatt.connect()"
+  gatt -> app: "BluetoothRemoteGATTServer"
+  app -> service: "getPrimaryService(0xFFE0)"
+  service -> app: "BluetoothRemoteGATTService"
+  app -> notify: "getCharacteristic(0xFFE1)"
+  notify -> app: "Notify characteristic"
+  app -> write: "getCharacteristic(0xFFE2)"
+  write -> app: "Write characteristic"
+
+  # Start notifications
+  app -> notify: "startNotifications()"
+  notify -> app: "Notifications enabled"
+  app -> notify: "addEventListener('characteristicvaluechanged')"
+  app -> app: "setSlotStatus(slot, 'connected')"
+
+  # Request device info
+  app -> write: "sendCmd(buildCommand(0x97))"
+  write -> bms: "20-byte command frame"
+  bms -> notify: "300-byte device info frame"
+  notify -> app: "onNotification() -> rxBuffer"
+  app -> app: "extractFrames() -> processFrame()"
+  app -> app: "parseDeviceInfo() -> update BmsData"
+
+  # Request cell data
+  app -> write: "sendCmd(buildCommand(0x96))"
+  write -> bms: "20-byte command frame"
+  bms -> notify: "300-byte cell data frame"
+  notify -> app: "onNotification() -> rxBuffer"
+  app -> app: "extractFrames() -> CRC check"
+  app -> app: "parseCellData() -> cells, temps, SOC, voltage, current"
+  app -> app: "updateUI(slot)"
+
+  # Heartbeat (continuous)
+  app -> app: "startHeartbeat(5s interval)"
+  app -> write: "sendActivate(slot) every 5s"
+  write -> bms: "0x96 command"
+  bms -> notify: "Fresh cell data frame"
+  notify -> app: "onNotification()"
+  app -> app: "Parse + update UI (repeat)"
+}
+
+# ============================================================
+# SEQUENCE: SECONDARY — Reconnection Flow
+# ============================================================
+seq-secondary: "Disconnection and Reconnection" {
+  shape: sequence_diagram
+
+  bms: "JK BMS Device"
+  gatt: "GATT Server"
+  app: "JK BMS App"
+  user: User
+
+  # Unexpected disconnect
+  bms -> gatt: "BLE link lost (out of range)"
+  gatt -> app: "gattserverdisconnected event"
+  app -> app: "onDisconnected(slot)"
+  app -> app: "setSlotStatus(slot, 'disconnected')"
+  app -> app: "clearInterval(heartbeatTimer)"
+  app -> app: "charNotify = null, charWrite = null"
+  app -> app: "log('Attempting reconnect in 3s...')"
+
+  # Auto reconnect
+  app -> app: "setTimeout(3000ms)"
+  app -> app: "reconnecting = false"
+  app -> gatt: "device.gatt.connect()"
+  gatt -> app: "BluetoothRemoteGATTServer"
+  app -> app: "connectSlot(slot) — full re-setup"
+  app -> app: "getPrimaryService -> getCharacteristics"
+  app -> app: "startNotifications()"
+  app -> app: "sendDeviceInfoCmd(slot)"
+  app -> app: "sendActivate(slot)"
+  app -> app: "startHeartbeat(slot)"
+  app -> app: "setSlotStatus(slot, 'connected')"
+
+  # Manual disconnect
+  user -> app: "Click X on panel"
+  app -> app: "disconnectSlot(slot)"
+  app -> app: "clearInterval(heartbeatTimer)"
+  app -> app: "reconnecting = true (prevent auto)"
+  app -> gatt: "device.gatt.disconnect()"
+  app -> app: "removeDevicePanel(slot)"
+  app -> app: "slots[slot] = null"
+  app -> app: "updateGlobalStatus()"
+}
+
+# ============================================================
+# ARCHITECTURE
+# ============================================================
+architecture: "System Architecture" {
+  browser: "Chrome / Edge / Opera" {
+    shape: cloud
+
+    pwa: "PWA Shell" {
+      sw: "Service Worker"
+      manifest: "manifest.json"
+    }
+
+    ui: "User Interface" {
+      header: "Header (device count)"
+      grid: "Device Grid (up to 3 panels)" {
+        panel0: "BMS Panel 1 (green)"
+        panel1: "BMS Panel 2 (blue)"
+        panel2: "BMS Panel 3 (orange)"
+        add-card: "Add BMS Card"
+      }
+
+      per-panel: "Per-Panel Views" {
+        soc: "SOC Bar + Capacity"
+        stats: "Voltage / Current / Power / Cycles"
+        cells-tab: "Cell Voltages (bar chart)"
+        temps-tab: "Temperature Grid"
+        status-tab: "MOS Status + Alarms"
+        raw-tab: "Hex Dump + Event Log"
+      }
+    }
+
+    logic: "Application Logic" {
+      slots: "Slot Manager [3]"
+      frame-proc: "Frame Processor"
+      cmd-builder: "Command Builder"
+      protocol: "Protocol Auto-Detect"
+      theme: "BSI Theme Bridge"
+    }
+  }
+
+  ble: "Web Bluetooth API" {
+    shape: hexagon
+  }
+
+  hardware: "JK BMS Hardware" {
+    shape: rectangle
+
+    bms1: "JK BMS #1" {
+      ble-module: "BLE Module"
+      mcu: "BMS MCU"
+      cells: "LiFePO4 Cells (4-32S)"
+    }
+    bms2: "JK BMS #2"
+    bms3: "JK BMS #3"
+  }
+
+  browser.logic.slots -> ble: "GATT operations"
+  ble -> hardware.bms1.ble-module: "BLE 4.0+"
+  ble -> hardware.bms2: "BLE 4.0+"
+  ble -> hardware.bms3: "BLE 4.0+"
+  browser.logic.frame-proc -> browser.ui.per-panel: "Parsed data"
+}
+
+# ============================================================
+# STATES — Per-Slot BLE Connection State Machine
+# ============================================================
+states: "Per-Slot BLE Connection State" {
+  empty: "Empty\n(slot = null)" {
+    style.fill: "#27272a"
+  }
+  scanning: "Scanning\n(requestDevice picker)" {
+    style.fill: "#3f3f46"
+  }
+  connecting: "Connecting\n(GATT + service discovery)" {
+    style.fill: "#fbbf24"
+    style.font-color: "#000"
+  }
+  connected: "Connected\n(Notifications active)" {
+    style.fill: "#4ade80"
+    style.font-color: "#000"
+  }
+  streaming: "Streaming\n(Heartbeat active, frames arriving)" {
+    style.fill: "#60a5fa"
+    style.font-color: "#000"
+  }
+  disconnected: "Disconnected\n(Link lost, auto-reconnect pending)" {
+    style.fill: "#f87171"
+    style.font-color: "#000"
+  }
+  reconnecting: "Reconnecting\n(3s delay, then gatt.connect)" {
+    style.fill: "#fb923c"
+    style.font-color: "#000"
+  }
+
+  empty -> scanning: "addDevice()"
+  scanning -> connecting: "Device selected"
+  scanning -> empty: "User cancelled (NotFoundError)"
+  connecting -> connected: "GATT + characteristics ready"
+  connecting -> disconnected: "Connection error"
+  connected -> streaming: "sendActivate + heartbeat on"
+  streaming -> disconnected: "gattserverdisconnected"
+  disconnected -> reconnecting: "Auto-reconnect after 3s"
+  reconnecting -> connecting: "gatt.connect()"
+  reconnecting -> disconnected: "Reconnect failed"
+  streaming -> empty: "User clicks Disconnect"
+  connected -> empty: "User clicks Disconnect"
+}
